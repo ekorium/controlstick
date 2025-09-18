@@ -11,10 +11,8 @@ export class ControlStick {
         this.div.onpointerdown = this.pointerDown.bind(this)
         this.div.onpointermove = this.pointerMove.bind(this)
         this.div.onpointerup = this.pointerUp.bind(this)
-        this.div.onpointercancel = this.pointerUp.bind(this)
-        this.div.onpointerleave = this.pointerUp.bind(this)
-        this.div.onpointerout = this.pointerUp.bind(this)
-        this.div.lostpointercapture = this.pointerUp.bind(this)
+        this.div.onpointercancel = (e) => this.pointerUp.bind(this)
+        this.div.onlostpointercapture = (e) => this.pointerUp.bind(this)
         this.pointerId = null
         this.state = this.constructor.DEFAULT_STATE
     }
