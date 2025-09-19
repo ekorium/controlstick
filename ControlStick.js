@@ -4,29 +4,47 @@ export class ControlStick {
         return {dx: 0, dy: 0, magnitude: 0}
     }
 
-    constructor(deadzone=0.1, maxzone=2.0) {
+    constructor(useEvents=true, delay=0, interval=10, deadzone=0.1, maxzone=2.0) {
+        this.useEvents = useEvents
+        this.delay = delay
+        this.interval = interval
         this.deadzone = deadzone
         this.maxzone = maxzone
+        this.reset()
         this.div = document.createElement('div')
         this.div.onpointerdown = this.pointerDown.bind(this)
         this.div.onpointermove = this.pointerMove.bind(this)
         this.div.onpointerup = this.pointerUp.bind(this)
-        this.div.onpointercancel = (e) => this.pointerUp.bind(this)
-        this.div.onlostpointercapture = (e) => this.pointerUp.bind(this)
+        this.div.onpointercancel = this.pointerUp.bind(this)
+        this.div.onlostpointercapture = this.pointerUp.bind(this)
+        this.setActive(true)
+    }
+
+    reset() {
         this.pointerId = null
         this.state = this.constructor.DEFAULT_STATE
+        clearTimeout(this.delayTimer)
+        clearInterval(this.intervalTimer)
+        this.delayTimer = null
+        this.intervalTimer = null
+    }
+
+    setActive(active) {
+        this.active = active
+        if (active) {
+            this.div.style.pointerEvents = 'auto'
+        } else {
+            this.div.style.pointerEvents = 'none'
+            this.reset()
+        }
     }
 
     get isPressed() {
         return this.pointerId !== null
     }
 
-    stateEqual(state1, state2) {
-        return state1.dx === state2.dx && state1.dy === state2.dy
-    }
-
     getPartialState(dx, dy) {
-        return {dx: dx, dy: dy}
+        return {dx, dy}
     }
 
     getStateFromXY(x, y) {
@@ -52,37 +70,37 @@ export class ControlStick {
         })
     }
 
+    dispatchEvent(type, state) {
+        if (this.useEvents) {
+            this.div.dispatchEvent(new CustomEvent(type, {detail: state}))
+        }
+    }
+
     pointerDown(e) {
-        if (this.pointerId === null) {
+        if (this.active && !this.isPressed) {
             this.pointerId = e.pointerId
             this.state = this.getStateFromXY(e.clientX, e.clientY)
             this.div.setPointerCapture(e.pointerId)
-            this.div.dispatchEvent(new CustomEvent('stickdown',
-                {'detail': this.state}
-            ))
+            this.dispatchEvent('stickdown', this.state)
+            this.delayTimer = setTimeout(() => {
+                this.intervalTimer = setInterval(() => {
+                    this.dispatchEvent('stickmove', this.state)
+                }, this.interval)
+            }, this.delay)
         }
     }
 
     pointerMove(e) {
         if (e.pointerId === this.pointerId) {
-            const state = this.getStateFromXY(e.clientX, e.clientY)
-            if (!this.stateEqual(state, this.state)) {
-                this.div.dispatchEvent(new CustomEvent('stickmove',
-                    {'detail': state}
-                ))
-            }
-            this.state = state
+            this.state = this.getStateFromXY(e.clientX, e.clientY)
         }
     }
 
     pointerUp(e) {
         if (e.pointerId === this.pointerId) {
-            this.pointerId = null
             const state = this.getStateFromXY(e.clientX, e.clientY)
-            this.state = this.constructor.DEFAULT_STATE
-            this.div.dispatchEvent(new CustomEvent('stickup',
-                {'detail': state}
-            ))
+            this.dispatchEvent('stickup', state)
+            this.reset()
         }
     }
 }
@@ -91,10 +109,6 @@ class ControlStickNotched extends ControlStick {
 
     static get DEFAULT_STATE() {
         return {direction: 'neutral', magnitude: 0}
-    }
-
-    stateEqual(state1, state2) {
-        return state1.direction === state2.direction
     }
 }
 
@@ -127,11 +141,10 @@ export class ControlStick8 extends ControlStickNotched {
 export class ControlStickPolar extends ControlStick {
 
     static get DEFAULT_STATE() {
-        return {dx: 0, dy: 0, angle: null, magnitude: 0}
+        return {angle: null, magnitude: 0}
     }
 
     getPartialState(dx, dy) {
-        const angle = Math.atan2(dy, dx)
-        return {dx: dx, dy: dy, angle: angle}
+        return {angle: Math.atan2(dy, dx)}
     }
 }
