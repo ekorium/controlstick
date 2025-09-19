@@ -1,7 +1,7 @@
-export class ControlStick {
+export default class ControlStick {
 
     static get DEFAULT_STATE() {
-        return {dx: 0, dy: 0, magnitude: 0}
+        return {dx: 0, dy: 0, magnitude: 0, dir4: [0, 0], dir8: [0, 0]}
     }
 
     constructor(useEvents=true, delay=0, interval=10, deadzone=0.1, maxzone=2.0) {
@@ -43,10 +43,6 @@ export class ControlStick {
         return this.pointerId !== null
     }
 
-    getPartialState(dx, dy) {
-        return {dx, dy}
-    }
-
     getStateFromXY(x, y) {
         const rect = this.div.getBoundingClientRect()
         const rx = rect.width / 2
@@ -56,12 +52,14 @@ export class ControlStick {
         const mx = Math.abs(dx / rx)
         const my = Math.abs(dy / ry)
         const magnitude = Math.min(1, (mx * mx + my * my) / this.maxzone)
-        if (magnitude < this.deadzone) {
+        if (rx === 0 || ry === 0 || magnitude < this.deadzone) {
             return this.constructor.DEFAULT_STATE
         }
-        const state = this.getPartialState(dx, dy)
-        state.magnitude = magnitude
-        return state
+        const sx = (dx > 0) ? 1 : -1
+        const sy = (dy > 0) ? 1 : -1
+        const dir4 = (mx > my) ? [sx, 0] : [0, sy]
+        const dir8 = (mx > 2 * my || my > 2 * mx) ? dir4 : [sx, sy]
+        return {dx, dy, magnitude, dir4, dir8}
     }
 
     on(type, callback) {
@@ -102,49 +100,5 @@ export class ControlStick {
             this.dispatchEvent('stickup', state)
             this.reset()
         }
-    }
-}
-
-class ControlStickNotched extends ControlStick {
-
-    static get DEFAULT_STATE() {
-        return {direction: 'neutral', magnitude: 0}
-    }
-}
-
-export class ControlStick4 extends ControlStickNotched {
-
-    getPartialState(dx, dy) {
-        if (Math.abs(dx) > Math.abs(dy)) {
-            return {direction: dx > 0 ? 'right' : 'left'}
-        } else {
-            return {direction: dy > 0 ? 'down' : 'up'}
-        }
-    }
-}
-
-export class ControlStick8 extends ControlStickNotched {
-
-    getPartialState(dx, dy) {
-        const sx = dx > 0 ? 'right' : 'left'
-        const sy = dy > 0 ? 'down' : 'up'
-        if (Math.abs(dx) > 2 * Math.abs(dy)) {
-            return {direction: sx}
-        } else if (Math.abs(dy) > 2 * Math.abs(dx)){
-            return {direction: sy}
-        } else {
-            return {direction: `${sx}-${sy}`}
-        }
-    }
-}
-
-export class ControlStickPolar extends ControlStick {
-
-    static get DEFAULT_STATE() {
-        return {angle: null, magnitude: 0}
-    }
-
-    getPartialState(dx, dy) {
-        return {angle: Math.atan2(dy, dx)}
     }
 }
