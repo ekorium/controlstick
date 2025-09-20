@@ -19,18 +19,19 @@ knob.id = 'knob'
 const player = document.createElement('div')
 player.id = 'player'
 
-let playerX = 100
-let playerY = 150
+window.addEventListener('load', function () {
+    document.body.appendChild(info)
+    document.body.appendChild(stick.div)
+    document.body.appendChild(player)
+})
 
 function render() {
     player.style.transform = `translate(${playerX}px, ${playerY}px)`
 }
 
+let playerX = 100
+let playerY = 150
 render()
-
-document.body.appendChild(info)
-document.body.appendChild(stick.div)
-document.body.appendChild(player)
 
 stick.on('stickmove', (state) => {
     info.innerHTML = stringifyState(state)
