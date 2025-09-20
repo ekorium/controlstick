@@ -1,7 +1,7 @@
 export default class ControlStick {
 
     static get DEFAULT_STATE() {
-        return {dx: 0, dy: 0, nx: 0, ny: 0, norm: 0, magnitude: 0, dir4: [0, 0], dir8: [0, 0]}
+        return {nx: 0, ny: 0, norm: 0, magnitude: 0, dir4: [0, 0], dir8: [0, 0]}
     }
 
     constructor({useEvents=false, moveOnDown=true, delay=10, interval=10, minzone=0.1, maxzone=1.0, knobzone=1.0}={}) {
@@ -91,7 +91,7 @@ export default class ControlStick {
         const nx = (norm > 0) ? dx / norm : 0
         const ny = (norm > 0) ? dy / norm : 0
         if (norm < this.minzone) {
-            return {...this.constructor.DEFAULT_STATE, dx, dy, nx, ny, norm}
+            return {...this.constructor.DEFAULT_STATE, nx, ny, norm}
         }
         const magnitude = this.computeMagnitude(norm)
         const mx = Math.abs(nx)
@@ -100,7 +100,7 @@ export default class ControlStick {
         const sy = (ny > 0) ? 1 : -1
         const dir4 = (mx > my) ? [sx, 0] : [0, sy]
         const dir8 = (mx > 2 * my || my > 2 * mx) ? dir4 : [sx, sy]
-        return {dx, dy, nx, ny, norm, magnitude, dir4, dir8}
+        return {nx, ny, norm, magnitude, dir4, dir8}
     }
 
     on(type, callback) {

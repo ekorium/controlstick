@@ -10,12 +10,18 @@ const player = document.createElement('div')
 player.id = 'player'
 document.body.appendChild(player)
 
+let playerX = 0
+let playerY = 0
+
+function render() {
+    player.style.transform = `translate(${playerX}px, ${playerY}px)`
+}
+
 stick.on('stickmove', (state) => {
-    const [dx, dy] = utils.normalizeDir8(state.dir8, 4 * state.magnitude)
-    const rect = player.getBoundingClientRect()
-    const border = 10
-    const limX = window.innerWidth - rect.width - border
-    const limY = window.innerHeight - rect.height - border
-    player.style.left = utils.clamp(rect.left + dx, border, limX) + 'px'
-    player.style.top = utils.clamp(rect.top + dy, border, limY) + 'px'
+    const {nx, ny, magnitude} = state
+    playerX += 4 * nx * magnitude
+    playerY += 4 * ny * magnitude
+    playerX = utils.clamp(playerX, 0, window.innerWidth - 120)
+    playerY = utils.clamp(playerY, 0, window.innerHeight - 120)
+    requestAnimationFrame(render)
 })
