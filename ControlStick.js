@@ -142,9 +142,8 @@ export default class ControlStick {
 
     pointerUp(e) {
         if (e.pointerId === this.pointerId) {
-            const state = this.getStateFromXY(e.clientX, e.clientY)
-            this.dispatchEvent('stickup', state)
             this.reset()
+            this.dispatchEvent('stickup', this.state)
         }
     }
 }
