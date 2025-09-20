@@ -23,3 +23,7 @@ export function stringifyDir8([x, y]) {
         return 'up-left'
     }
 }
+
+export function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max)
+}

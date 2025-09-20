@@ -10,16 +10,21 @@
     width: 150px;
     height: 150px;
     border-radius: 50%;
-    background-color: red;
-    &:active {
-        background-color: blue;
-    }
+    outline: solid rgba(0, 0, 0, 0.2) 5px;
+}
+
+#knob {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.4);
+    transition: transform 0.1s ease;
 }
 
 #player {
     position: fixed;
     top: 100px;
-    left: 300px;
+    left: 100px;
     width: 150px;
     height: 150px;
     background-color: green;
