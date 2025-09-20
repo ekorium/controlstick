@@ -12,23 +12,25 @@ function stringifyState(state) {
 const info = document.createElement('div')
 info.id = 'info'
 info.innerHTML = stringifyState(ControlStick.DEFAULT_STATE)
-document.body.appendChild(info)
 const stick = new ControlStick({useEvents: true, maxzone: 1.5, knobzone: 1.2})
 stick.div.id = 'stick'
-document.body.appendChild(stick.div)
 const knob = stick.createKnob()
 knob.id = 'knob'
 const player = document.createElement('div')
 player.id = 'player'
-document.body.appendChild(player)
+
+let playerX = 100
+let playerY = 150
 
 function render() {
     player.style.transform = `translate(${playerX}px, ${playerY}px)`
 }
 
-let playerX = 100
-let playerY = 150
 render()
+
+document.body.appendChild(info)
+document.body.appendChild(stick.div)
+document.body.appendChild(player)
 
 stick.on('stickmove', (state) => {
     info.innerHTML = stringifyState(state)
