@@ -12,11 +12,10 @@ function stringifyState(state) {
 window.addEventListener('load', () => {
 
     const info = document.createElement('div')
-    const stick = new ControlStick({useEvents: true, maxzone: 1.5, knobzone: 1.2})
+    const stick = new ControlStick({maxzone: 1.5, knobzone: 1.2})
     const knob = stick.createKnob()
     const player = document.createElement('div')
     
-    info.innerHTML = stringifyState(ControlStick.DEFAULT_STATE)
     info.id = 'info'
     stick.div.id = 'stick'
     knob.id = 'knob'
@@ -26,25 +25,19 @@ window.addEventListener('load', () => {
     document.body.appendChild(stick.div)
     document.body.appendChild(player)
 
-    function render() {
-        player.style.transform = `translate(${playerX}px, ${playerY}px)`
-    }
-
     let playerX = 100
     let playerY = 150
-    render()
-
-    stick.on('stickmove', (state) => {
-        info.innerHTML = stringifyState(state)
-        const {nx, ny, magnitude} = state
-        playerX += 4 * nx * magnitude
-        playerY += 4 * ny * magnitude
+    
+    function update(time, dt = 0) {
+        const {nx, ny, magnitude} = stick.state
+        info.innerHTML = stringifyState(stick.state)
+        playerX += 0.25 * dt * nx * magnitude
+        playerY += 0.25 * dt * ny * magnitude
         playerX = utils.clamp(playerX, 0, window.innerWidth - 100)
         playerY = utils.clamp(playerY, 0, window.innerHeight - 100)
-        requestAnimationFrame(render)
-    })
-
-    stick.on('stickup', (state) => {
-        info.innerHTML = stringifyState(state)
-    })
+        player.style.transform = `translate(${playerX}px, ${playerY}px)`
+        requestAnimationFrame((nextTime) => update(nextTime, nextTime - time))
+    }
+    
+    update(performance.now())
 })

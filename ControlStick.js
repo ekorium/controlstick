@@ -4,7 +4,16 @@ export default class ControlStick {
         return {nx: 0, ny: 0, norm: 0, magnitude: 0, dir4: [0, 0], dir8: [0, 0]}
     }
 
-    constructor({useEvents=false, moveOnDown=true, delay=10, interval=10, minzone=0.1, maxzone=1.0, knobzone=1.0}={}) {
+    constructor({
+        useEvents = false,
+        moveOnDown = true,
+        delay = 10,
+        interval = 10,
+        minzone = 0.1,
+        maxzone = 1.0,
+        knobzone = 1.0,
+        interpolate = (z) => z
+    } = {}) {
         this.useEvents = useEvents
         this.moveOnDown = moveOnDown
         this.delay = delay
@@ -12,6 +21,7 @@ export default class ControlStick {
         this.minzone = minzone
         this.maxzone = maxzone
         this.knobzone = knobzone
+        this.interpolate = interpolate
         this.knob = null
         this.reset()
         this.div = document.createElement('div')
@@ -75,10 +85,10 @@ export default class ControlStick {
 
     computeMagnitude(norm) {
         if (this.minzone >= this.maxzone) {
-            return 1
+            return this.interpolate(1)
         }
         const value = (norm - this.minzone) / (this.maxzone - this.minzone)
-        return Math.min(1, value)
+        return Math.min(1, this.interpolate(value))
     }
 
     getStateFromXY(x, y) {
