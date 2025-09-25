@@ -2,28 +2,29 @@ import ControlStick from './ControlStick.js'
 import * as utils from './utils.js'
 
 function stringifyState(state) {
-    let string = `nx: ${state.nx.toFixed(3)}<br>ny: ${state.ny.toFixed(3)}`
+    let string = `z: ${state.z}`
+    string += `<br>nx: ${state.nx.toFixed(3)}<br>ny: ${state.ny.toFixed(3)}`
     string += `<br>norm: ${state.norm.toFixed(3)}<br>magnitude: ${state.magnitude.toFixed(3)}`
-    string += `<br>dir4: ${JSON.stringify(state.dir4)} (${utils.stringifyDir8(state.dir4)})`
-    string += `<br>dir8: ${JSON.stringify(state.dir8)} (${utils.stringifyDir8(state.dir8)})`
+    string += `<br>dir4: ${JSON.stringify(state.xy4)} (${utils.stringifyXY8(state.xy4)})`
+    string += `<br>dir8: ${JSON.stringify(state.xy8)} (${utils.stringifyXY8(state.xy8)})`
     return string
 }
 
 window.addEventListener('load', () => {
 
     const info = document.createElement('div')
-    const stick = new ControlStick({maxzone: 1.5, knobzone: 1.2})
-    const knob = stick.createKnob()
+    const stick = new ControlStick(0.1, 1.5)
+    const knob = stick.createKnob(1.0)
     const player = document.createElement('div')
     
     info.id = 'info'
-    stick.div.id = 'stick'
+    stick.id = 'stick'
     knob.id = 'knob'
     player.id = 'player'
 
     document.body.appendChild(info)
-    document.body.appendChild(stick.div)
     document.body.appendChild(player)
+    document.body.appendChild(stick)
 
     let playerX = 100
     let playerY = 150

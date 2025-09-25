@@ -1,82 +1,65 @@
-export default class ControlStick {
+export default class ControlStick extends HTMLElement {
 
-    static get DEFAULT_STATE() {
-        return {nx: 0, ny: 0, norm: 0, magnitude: 0, dir4: [0, 0], dir8: [0, 0]}
-    }
-
-    constructor({
-        useEvents = false,
-        moveOnDown = true,
-        delay = 10,
-        interval = 10,
-        minzone = 0.1,
-        maxzone = 1.0,
-        knobzone = 1.0,
-        interpolate = (z) => z
-    } = {}) {
-        this.useEvents = useEvents
-        this.moveOnDown = moveOnDown
-        this.delay = delay
-        this.interval = interval
-        this.minzone = minzone
-        this.maxzone = maxzone
-        this.knobzone = knobzone
-        this.interpolate = interpolate
-        this.knob = null
-        this.reset()
-        this.div = document.createElement('div')
-        this.div.onpointerdown = this.pointerDown.bind(this)
-        this.div.onpointermove = this.pointerMove.bind(this)
-        this.div.onpointerup = this.pointerUp.bind(this)
-        this.div.onpointercancel = this.pointerUp.bind(this)
-        this.div.onlostpointercapture = this.pointerUp.bind(this)
+    constructor(deadZone = 0, maxZone = 1, autoUpdateRect = false) {
+        super()
+        this.deadZone = deadZone
+        this.maxZone = maxZone
+        this.autoUpdateRect = autoUpdateRect
+        this.onpointerdown = this.pointerDown.bind(this)
+        this.onpointermove = this.pointerMove.bind(this)
+        this.onpointerup = this.pointerUp.bind(this)
+        this.onpointercancel = this.pointerUp.bind(this)
+        this.onlostpointercapture = this.pointerUp.bind(this)
         this.setActive(true)
-    }
-
-    reset() {
-        this.pointerId = null
-        this.state = this.constructor.DEFAULT_STATE
-        this.updateKnob()
-        clearTimeout(this.delayTimer)
-        clearInterval(this.intervalTimer)
-        this.delayTimer = null
-        this.intervalTimer = null
-    }
-
-    createKnob() {
-        if (!this.knob) {
-            this.knob = document.createElement('div')
-            this.knob.style.position = 'absolute'
-            this.knob.style.left = '50%'
-            this.knob.style.top = '50%'
-            this.knob.style.transform = 'translate(-50%, -50%)'
-            this.knob.style.pointerEvents = 'none'
-            this.div.appendChild(this.knob)
-        }
-        return this.knob
-    }
-
-    updateKnob() {
-        if (this.knob) {
-            requestAnimationFrame(this.animateKnob.bind(this))
-        }
-    }
-
-    animateKnob() {
-        const c = Math.min(this.state.norm, this.knobzone)
-        const mx = 50 * c * this.state.nx
-        const my = 50 * c * this.state.ny
-        this.knob.style.transform = `translate(${mx - 50}%, ${my - 50}%)`
+        this.updateRect()
+        this.reset()
     }
 
     setActive(active) {
         this.active = active
         if (active) {
-            this.div.style.pointerEvents = 'auto'
+            this.style.pointerEvents = 'auto'
         } else {
-            this.div.style.pointerEvents = 'none'
+            this.style.pointerEvents = 'none'
             this.reset()
         }
+    }
+
+    updateRect() {
+        const rect = this.getBoundingClientRect()
+        const rx = rect.width / 2
+        const ry = rect.height / 2
+        const cx = rect.left + rx
+        const cy = rect.top + ry
+        this.rect = {rx, ry, cx, cy}
+    }
+
+    reset() {
+        this.pointerId = null
+        this.updateState(0, 0)
+    }
+
+    updateState(x, y) {
+        if (this.autoUpdateRect) {
+            this.updateRect()
+        }
+        const z = this.isPressed ? 1 : 0
+        const {rx, ry, cx, cy} = this.rect
+        const dx = (rx > 0 && z) ? (x - cx) / rx : 0
+        const dy = (ry > 0 && z) ? (y - cy) / ry : 0
+        const norm = Math.hypot(dx, dy)
+        const nx = (norm > 0) ? dx / norm : 0
+        const ny = (norm > 0) ? dy / norm : 0
+        const magnitude = this.computeMagnitude(norm)
+        const mx = Math.abs(dx)
+        const my = Math.abs(dy)
+        const s = (norm > this.deadZone) ? 1 : 0
+        const sx = (dx < 0) ? -s : s
+        const sy = (dy < 0) ? -s : s
+        const xy4 = (mx > my) ? [sx, 0] : [0, sy]
+        const xy8 = (mx > 2 * my || my > 2 * mx) ? xy4 : [sx, sy]
+        this.state = {z, nx, ny, norm, magnitude, xy4, xy8}
+        this.updateKnob()
     }
 
     get isPressed() {
@@ -84,76 +67,108 @@ export default class ControlStick {
     }
 
     computeMagnitude(norm) {
-        if (this.minzone >= this.maxzone) {
-            return this.interpolate(1)
+        if (norm <= this.deadZone) {
+            return 0
         }
-        const value = (norm - this.minzone) / (this.maxzone - this.minzone)
-        return Math.min(1, this.interpolate(value))
+        if (norm >= this.maxZone) {
+            return 1
+        }
+        return (norm - this.deadZone) / (this.maxZone - this.deadZone)
     }
 
-    getStateFromXY(x, y) {
-        const rect = this.div.getBoundingClientRect()
-        const rx = rect.width / 2
-        const ry = rect.height / 2
-        const dx = (rx > 0) ? (x - (rect.left + rx)) / rx : 0
-        const dy = (ry > 0) ? (y - (rect.top + ry)) / ry : 0
-        const norm = Math.hypot(dx, dy)
-        const nx = (norm > 0) ? dx / norm : 0
-        const ny = (norm > 0) ? dy / norm : 0
-        if (norm < this.minzone) {
-            return {...this.constructor.DEFAULT_STATE, nx, ny, norm}
+    createKnob(knobZone = 1) {
+        this.knobZone = knobZone
+        if (!this.knob) {
+            this.knob = document.createElement('div')
+            this.knob.style.pointerEvents = 'none'
+            this.knob.style.position = 'absolute'
+            this.knob.style.left = '50%'
+            this.knob.style.top = '50%'
+            this.knob.style.transform = 'translate(-50%, -50%)'
+            this.appendChild(this.knob)
+            this.animateKnob = this.animateKnob.bind(this)
         }
-        const magnitude = this.computeMagnitude(norm)
-        const mx = Math.abs(nx)
-        const my = Math.abs(ny)
-        const sx = (nx > 0) ? 1 : -1
-        const sy = (ny > 0) ? 1 : -1
-        const dir4 = (mx > my) ? [sx, 0] : [0, sy]
-        const dir8 = (mx > 2 * my || my > 2 * mx) ? dir4 : [sx, sy]
-        return {nx, ny, norm, magnitude, dir4, dir8}
+        return this.knob
+    }
+
+    updateKnob() {
+        if (this.knob) {
+            if (!this.knobScheduled) {
+                requestAnimationFrame(this.animateKnob)
+            }
+            this.knobScheduled = true
+        }
+    }
+
+    animateKnob() {
+        const c = Math.min(this.state.norm, this.knobZone)
+        const mx = 50 * c * this.state.nx
+        const my = 50 * c * this.state.ny
+        this.knob.style.transform = `translate(${mx - 50}%, ${my - 50}%)`
+        this.knobScheduled = false
     }
 
     on(type, callback) {
         const handler = (e) => callback(e.detail)
-        this.div.addEventListener(type, handler)
-        return () => this.div.removeEventListener(type, handler)
+        this.addEventListener(type, handler)
+        return () => this.removeEventListener(type, handler)
     }
 
-    dispatchEvent(type, state) {
-        if (this.useEvents) {
-            this.div.dispatchEvent(new CustomEvent(type, {detail: state}))
-        }
+    dispatch(type) {
+        this.dispatchEvent(new CustomEvent(type, {detail: this.state}))
     }
 
     pointerDown(e) {
         if (this.active && !this.isPressed) {
             this.pointerId = e.pointerId
-            this.state = this.getStateFromXY(e.clientX, e.clientY)
-            this.updateKnob()
-            this.div.setPointerCapture(e.pointerId)
-            this.dispatchEvent('stickdown', this.state)
-            if (this.moveOnDown) {
-                this.dispatchEvent('stickmove', this.state)
-            }
-            this.delayTimer = setTimeout(() => {
-                this.intervalTimer = setInterval(() => {
-                    this.dispatchEvent('stickmove', this.state)
-                }, this.interval)
-            }, this.delay)
+            this.setPointerCapture(e.pointerId)
+            this.updateState(e.clientX, e.clientY)
+            this.dispatch('stickdown')
         }
     }
 
     pointerMove(e) {
         if (e.pointerId === this.pointerId) {
-            this.state = this.getStateFromXY(e.clientX, e.clientY)
-            this.updateKnob()
+            this.updateState(e.clientX, e.clientY)
+            this.dispatch('stickmove')
         }
     }
 
     pointerUp(e) {
         if (e.pointerId === this.pointerId) {
             this.reset()
-            this.dispatchEvent('stickup', this.state)
+            this.dispatch('stickup')
         }
     }
+
+    repeatInput(callback, delay, interval, inputOnDown = true, inputOnUp = true) {
+        let delayTimer, intervalTimer
+        const removeDown = this.on('stickdown', (state) => {
+            if (inputOnDown) {
+                callback(state)
+            }
+            delayTimer = setTimeout(() => {
+                intervalTimer = setInterval(() => {
+                    callback(state)
+                }, interval)
+            }, delay)
+        })
+        const removeUp = this.on('stickup', (state) => {
+            clearTimeout(delayTimer)
+            clearInterval(intervalTimer)
+            if (inputOnUp) {
+                callback(state)
+            }
+        })
+        return () => {
+            removeDown()
+            removeUp()
+        }
+    }
+
+    connectedCallback() {
+        this.updateRect()
+    }
 }
+
+customElements.define('control-stick', ControlStick)
