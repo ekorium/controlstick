@@ -153,7 +153,7 @@ export default class ControlStick extends HTMLElement {
             }
             delayTimer = setTimeout(() => {
                 intervalTimer = setInterval(() => {
-                    callback(state)
+                    callback(this.state)
                 }, interval)
             }, delay)
         })
