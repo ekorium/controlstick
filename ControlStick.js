@@ -15,6 +15,10 @@ export default class ControlStick extends HTMLElement {
         this.reset()
     }
 
+    connectedCallback() {
+        this.updateRect()
+    }
+
     setActive(active) {
         this.active = active
         if (active) {
@@ -164,10 +168,6 @@ export default class ControlStick extends HTMLElement {
             removeDown()
             removeUp()
         }
-    }
-
-    connectedCallback() {
-        this.updateRect()
     }
 }
 

@@ -23,8 +23,8 @@ window.addEventListener('load', () => {
     player.id = 'player'
 
     document.body.appendChild(info)
-    document.body.appendChild(player)
     document.body.appendChild(stick)
+    document.body.appendChild(player)
 
     let playerX = 100
     let playerY = 150
